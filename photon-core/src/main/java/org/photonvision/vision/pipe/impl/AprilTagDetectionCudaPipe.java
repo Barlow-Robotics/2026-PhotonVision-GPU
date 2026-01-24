@@ -17,15 +17,13 @@
 
 package org.photonvision.vision.pipe.impl;
 
+import edu.wpi.first.apriltag.AprilTagDetection;
 import java.util.List;
-
 import org.opencv.core.Mat;
 import org.photonvision.vision.objects.GpuDetectorJNI;
 import org.photonvision.vision.opencv.CVMat;
 import org.photonvision.vision.opencv.Releasable;
 import org.photonvision.vision.pipe.CVPipe;
-
-import edu.wpi.first.apriltag.AprilTagDetection;
 
 public class AprilTagDetectionCudaPipe
         extends CVPipe<CVMat, List<AprilTagDetection>, AprilTagDetectionCudaPipeParams>
