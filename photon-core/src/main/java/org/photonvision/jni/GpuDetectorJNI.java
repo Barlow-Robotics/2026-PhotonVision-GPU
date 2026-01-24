@@ -1,4 +1,4 @@
-package org.photonvision.vision.objects;
+package org.photonvision.jni;
 
 import edu.wpi.first.apriltag.AprilTagDetection;
 
