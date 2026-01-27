@@ -1,3 +1,12 @@
+Note:
+
+git branch -m jetson-orin main
+git fetch origin
+git branch -u origin/main main
+git remote set-head origin -a
+
+
+
 STEP 1) Install lib971apriltag.so 
 This is 971's cuda apriltag library wrapped for photonvision.
 
