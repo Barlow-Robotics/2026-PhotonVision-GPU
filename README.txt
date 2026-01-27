@@ -49,8 +49,8 @@ sudo cp lib971apriltag.so /usr/lib
 
 STEP 2)
 Git clone this repo.  
-https://github.com/Barlow-Robotics/2026-PhotonVision-TEST
-cd 2026-PhotonVision-TEST
+https://github.com/Barlow-Robotics/2026-PhotonVision-GPU
+cd 2026-PhotonVision-GPU
 Use build instructions in photonvision: https://docs.photonvision.org/en/v2026.1.1/docs/contributing/building-photon.html.
 
 Use ./gradlew shadowJar 
