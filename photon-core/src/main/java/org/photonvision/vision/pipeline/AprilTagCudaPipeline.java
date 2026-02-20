@@ -26,9 +26,17 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.RawPublisher;
+import edu.wpi.first.networktables.RawTopic;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.photonvision.common.configuration.ConfigManager;
 import org.photonvision.common.util.math.MathUtils;
 import org.photonvision.estimation.TargetModel;
@@ -57,15 +65,23 @@ public class AprilTagCudaPipeline
     private final CalculateFPSPipe calculateFPSPipe = new CalculateFPSPipe();
 
     private static final FrameThresholdType PROCESSING_TYPE = FrameThresholdType.GREYSCALE;
+    
+    private final RawPublisher imagePublisher;
 
-    public AprilTagCudaPipeline() {
+    public AprilTagCudaPipeline(String cameraName) {
         super(PROCESSING_TYPE);
         settings = new AprilTagCudaPipelineSettings();
+        NetworkTableInstance inst = NetworkTableInstance.getDefault();
+        RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
+        imagePublisher = imageTopic.publish("raw");
     }
 
-    public AprilTagCudaPipeline(AprilTagCudaPipelineSettings settings) {
+    public AprilTagCudaPipeline(String cameraName, AprilTagCudaPipelineSettings settings) {
         super(PROCESSING_TYPE);
         this.settings = settings;
+        NetworkTableInstance inst = NetworkTableInstance.getDefault();
+        RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
+        imagePublisher = imageTopic.publish("raw");
     }
 
     @Override
@@ -116,6 +132,13 @@ public class AprilTagCudaPipeline
 
     @Override
     protected CVPipelineResult process(Frame frame, AprilTagCudaPipelineSettings settings) {
+        Mat mat = frame.colorImage.getMat();
+        MatOfByte mob = new MatOfByte();
+        Imgcodecs.imencode(".jpg", mat, mob);
+
+        byte[] jpgBytes = mob.toArray();
+        imagePublisher.set(jpgBytes);
+        mob.release();
         long sumPipeNanosElapsed = 0L;
 
         if (frame.type != FrameThresholdType.GREYSCALE) {

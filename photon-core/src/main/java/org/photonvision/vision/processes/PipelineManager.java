@@ -56,7 +56,7 @@ public class PipelineManager {
      * Used only when switching from any of the built-in pipelines back to a user-created pipeline.
      */
     private int lastUserPipelineIdx;
-
+    public String cameraName = "Unnamed Camera";
     /**
      * Creates a PipelineManager with a DriverModePipeline, a Calibration3dPipeline, and all provided
      * pipelines.
@@ -83,6 +83,7 @@ public class PipelineManager {
 
     public PipelineManager(CameraConfiguration config) {
         this(config.driveModeSettings, config.pipelineSettings, config.currentPipelineIndex);
+        this.cameraName = config.nickname;
     }
 
     /**
@@ -260,7 +261,7 @@ public class PipelineManager {
             case AprilTagCuda -> {
                 logger.debug("Creating AprilTagCuda pipeline");
                 currentUserPipeline =
-                        new AprilTagCudaPipeline((AprilTagCudaPipelineSettings) desiredPipelineSettings);
+                        new AprilTagCudaPipeline(cameraName, (AprilTagCudaPipelineSettings) desiredPipelineSettings);
             }
             case Aruco -> {
                 logger.debug("Creating ArUco Pipeline");
