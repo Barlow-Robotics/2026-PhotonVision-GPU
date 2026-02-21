@@ -26,17 +26,16 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.RawPublisher;
-import edu.wpi.first.networktables.RawTopic;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.photonvision.common.configuration.ConfigManager;
 import org.photonvision.common.util.math.MathUtils;
 import org.photonvision.estimation.TargetModel;
@@ -56,8 +55,7 @@ import org.photonvision.vision.pipeline.result.CVPipelineResult;
 import org.photonvision.vision.target.TrackedTarget;
 import org.photonvision.vision.target.TrackedTarget.TargetCalculationParameters;
 
-public class AprilTagCudaPipeline
-        extends CVPipeline<CVPipelineResult, AprilTagCudaPipelineSettings> {
+public class AprilTagCudaPipeline extends CVPipeline<CVPipelineResult, AprilTagCudaPipelineSettings> {
     private final AprilTagDetectionCudaPipe aprilTagDetectionPipe = new AprilTagDetectionCudaPipe();
     private final AprilTagPoseEstimatorPipe singleTagPoseEstimatorPipe =
             new AprilTagPoseEstimatorPipe();
@@ -65,23 +63,67 @@ public class AprilTagCudaPipeline
     private final CalculateFPSPipe calculateFPSPipe = new CalculateFPSPipe();
 
     private static final FrameThresholdType PROCESSING_TYPE = FrameThresholdType.GREYSCALE;
-    
-    private final RawPublisher imagePublisher;
 
+    // private final RawPublisher imagePublisher;
+    private final String cameraName;
+    private final long cameraSize;
+    private final MappedByteBuffer sharedBuffer;
+    private byte[] pixelBuffer;
+    private RandomAccessFile raf;
     public AprilTagCudaPipeline(String cameraName) {
         super(PROCESSING_TYPE);
         settings = new AprilTagCudaPipelineSettings();
-        NetworkTableInstance inst = NetworkTableInstance.getDefault();
-        RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
-        imagePublisher = imageTopic.publish("raw");
+        this.cameraName = cameraName;
+        this.cameraSize = 1280 * 800 * 3;
+        this.pixelBuffer = new byte[(int) this.cameraSize];
+
+        long totalSize = this.cameraSize * 4L;
+        MappedByteBuffer tempBuffer = null;
+        RandomAccessFile tempRaf = null;
+
+        try {
+            tempRaf = new RandomAccessFile("/dev/shm/vision_shared", "rw");
+            tempRaf.setLength(totalSize);
+            tempBuffer = tempRaf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, totalSize);
+        } catch (IOException e) {
+            System.err.println("Failed to open shared memory: " + e.getMessage());
+        }
+
+        this.raf = tempRaf;
+        this.sharedBuffer = tempBuffer;
+
+        // NetworkTableInstance inst = NetworkTableInstance.getDefault();
+        // RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
+        // imagePublisher = imageTopic.publish("raw");
     }
 
     public AprilTagCudaPipeline(String cameraName, AprilTagCudaPipelineSettings settings) {
         super(PROCESSING_TYPE);
         this.settings = settings;
-        NetworkTableInstance inst = NetworkTableInstance.getDefault();
-        RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
-        imagePublisher = imageTopic.publish("raw");
+        this.cameraName = cameraName;
+        this.cameraSize = 1280 * 800 * 3;
+        this.pixelBuffer = new byte[(int) this.cameraSize];
+
+        long totalSize = this.cameraSize * 4L;
+        MappedByteBuffer tempBuffer = null;
+        RandomAccessFile tempRaf = null;
+        
+
+        try {
+            tempRaf = new RandomAccessFile("/dev/shm/vision_shared", "rw");
+            tempRaf.setLength(totalSize);
+            tempBuffer = tempRaf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, totalSize);
+        } catch (IOException e) {
+            System.err.println("Failed to open shared memory: " + e.getMessage());
+        }
+
+        this.raf = tempRaf;
+        this.sharedBuffer = tempBuffer;
+        
+        // NetworkTableInstance inst = NetworkTableInstance.getDefault();
+        // RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
+        // imagePublisher = imageTopic.publish("raw");
+
     }
 
     @Override
@@ -132,13 +174,21 @@ public class AprilTagCudaPipeline
 
     @Override
     protected CVPipelineResult process(Frame frame, AprilTagCudaPipelineSettings settings) {
-        Mat mat = frame.colorImage.getMat();
-        MatOfByte mob = new MatOfByte();
-        Imgcodecs.imencode(".jpg", mat, mob);
+        if (this.sharedBuffer != null) {
+            Mat mat = frame.colorImage.getMat();
+            mat.get(0, 0, this.pixelBuffer); 
 
-        byte[] jpgBytes = mob.toArray();
-        imagePublisher.set(jpgBytes);
-        mob.release();
+            int index = switch(cameraName.toLowerCase()) {
+                case "cam1" -> 0;
+                case "cam2" -> 1;
+                case "cam3" -> 2;
+                case "cam4" -> 3;
+                default -> 0;
+            };
+            this.sharedBuffer.put((int)(index * this.cameraSize), this.pixelBuffer, 0, (int) this.cameraSize);
+            this.sharedBuffer.force();
+        }
+
         long sumPipeNanosElapsed = 0L;
 
         if (frame.type != FrameThresholdType.GREYSCALE) {
