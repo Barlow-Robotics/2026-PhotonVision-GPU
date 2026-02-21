@@ -66,14 +66,14 @@ public class AprilTagCudaPipeline
 
     private static final FrameThresholdType PROCESSING_TYPE = FrameThresholdType.GREYSCALE;
     
-    private final RawPublisher imagePublisher;
+    private RawPublisher imagePublisher;
 
-    public AprilTagCudaPipeline(String cameraName) {
+    public AprilTagCudaPipeline() {
         super(PROCESSING_TYPE);
         settings = new AprilTagCudaPipelineSettings();
-        NetworkTableInstance inst = NetworkTableInstance.getDefault();
-        RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
-        imagePublisher = imageTopic.publish("raw");
+        // NetworkTableInstance inst = NetworkTableInstance.getDefault();
+        // RawTopic imageTopic = inst.getRawTopic("/vision/" + cameraName + "/latest_image");
+        // imagePublisher = imageTopic.publish("raw");
     }
 
     public AprilTagCudaPipeline(String cameraName, AprilTagCudaPipelineSettings settings) {
