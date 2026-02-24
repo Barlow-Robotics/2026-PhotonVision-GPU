@@ -177,7 +177,6 @@ public class AprilTagCudaPipeline extends CVPipeline<CVPipelineResult, AprilTagC
         if (this.sharedBuffer != null) {
             Mat mat = frame.colorImage.getMat();
             mat.get(0, 0, this.pixelBuffer); 
-
             int index = switch(cameraName.toLowerCase()) {
                 case "cam1" -> 0;
                 case "cam2" -> 1;
@@ -185,6 +184,7 @@ public class AprilTagCudaPipeline extends CVPipeline<CVPipelineResult, AprilTagC
                 case "cam4" -> 3;
                 default -> 0;
             };
+            System.out.println("Wrote frame " + index + " to shared memory for camera " + cameraName);
             this.sharedBuffer.put((int)(index * this.cameraSize), this.pixelBuffer, 0, (int) this.cameraSize);
             this.sharedBuffer.force();
         }
