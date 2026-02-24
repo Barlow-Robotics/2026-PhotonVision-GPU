@@ -74,7 +74,7 @@ public class AprilTagCudaPipeline extends CVPipeline<CVPipelineResult, AprilTagC
         super(PROCESSING_TYPE);
         settings = new AprilTagCudaPipelineSettings();
         this.cameraName = cameraName;
-        this.cameraSize = 1280 * 800 * 3;
+        this.cameraSize = 1280 * 720 * 3;
         this.pixelBuffer = new byte[(int) this.cameraSize];
 
         long totalSize = this.cameraSize * 4L;
@@ -101,7 +101,7 @@ public class AprilTagCudaPipeline extends CVPipeline<CVPipelineResult, AprilTagC
         super(PROCESSING_TYPE);
         this.settings = settings;
         this.cameraName = cameraName;
-        this.cameraSize = 1280 * 800 * 3;
+        this.cameraSize = 1280 * 720 * 3;
         this.pixelBuffer = new byte[(int) this.cameraSize];
 
         long totalSize = this.cameraSize * 4L;
